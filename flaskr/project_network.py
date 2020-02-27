@@ -1,48 +1,21 @@
-import networkx as nx
-import os
+import network
 
 
-class ProjectNetwork():
-    def __init__(self, project_graph):
-        self.__debug = os.getenv("DEBUG")
-        self.graph = nx.DiGraph()
-        self.__neo4j_to_network(project_graph)
+class ProjectNetwork(network.Network):
+    """Class representing a project and it's contents (Packages, classOrInterfaces and Methods in a network."""
 
-    def get_network_json(self):
-        """Parse the network into the standard JSON structure for most graphs libraries."""
-        graph_data = nx.node_link_data(self.graph)
+    def __init__(self, project_name):
+        # TODO Check if graph exists
+        network.Network.__init__(self)
+        records = self.__fetch_data(project_name)
+        self.neo4j_to_network(records)
 
-        for node in graph_data.get('nodes'):
-            node['name'] = (self.graph.nodes[node.get('id')].get('id'))  # Add id to node data as 'name'
+    def __fetch_data(self, project_name):
+        query = ("MATCH p = (parent:Project{id:$projectName})"
+                 "-[ra:Contains]->(child:Package)"
+                 "-[rb:Contains]->(class:ClassOrInterface)"
+                 "-[rc:Contains]->(method:Method) " + self.query_end)
+        with self.db_driver.session() as session:
+            result = session.run(query, parameters={"projectName": project_name})
 
-        return graph_data
-
-    def __neo4j_to_network(self, records):
-        """Takes a neo4j result.records and generates a networkx network into self.graph"""
-        for record in records:
-            # labels = record[0].labels
-            self.__add_node(record[0].id, record[0].get("id"))  # Add first node
-            self.__add_node(record[1].id, record[1].get("id"))  # Add second node
-            self.__add_edge(record[0].id, record[1].id)  # Add edge
-
-    def __add_node(self, neo4j_id, node_id):
-        """Adds a node to self.graph"""
-        if self.graph.has_node(neo4j_id):  # Node already in graph
-            print("Node " + node_id + " already in graph.")
-            return False
-        else:
-            self.graph.add_node(neo4j_id, id=node_id, type="project")
-            if self.__debug:
-                print("Added " + node_id + " to graph.")
-            return True
-
-    def __add_edge(self, node_a_id, node_b_id):
-        """Adds an edge to self.graph"""
-        if not self.graph.has_edge(node_a_id, node_b_id):
-            self.graph.add_edge(node_a_id, node_b_id, type="depends")
-            if self.__debug:
-                print("Added edge", node_a_id, "to", node_b_id, "to graph.")
-            return True
-        if self.__debug:
-            print("Edge", node_a_id, "to", node_b_id, "already in graph.")
-        return False
+            return result.records()
