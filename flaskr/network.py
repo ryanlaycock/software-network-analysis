@@ -10,22 +10,17 @@ class Network:
         self.db = graph_db.GraphDb()
         self.db_driver = self.db.get_driver()
         self.query_end = ("UNWIND nodes(p) as allnodes WITH COLLECT(ID(allnodes)) AS ALLID "
-                            "MATCH (a)-[r2]-(b) "
-                            "WHERE ID(a) IN ALLID AND ID(b) IN ALLID "
-                            "WITH DISTINCT r2 "
-                            "RETURN startNode(r2), type(r2), endNode(r2)")
+                          "MATCH (a)-[r2]-(b) "
+                          "WHERE ID(a) IN ALLID AND ID(b) IN ALLID "
+                          "WITH DISTINCT r2 "
+                          "RETURN startNode(r2), type(r2), endNode(r2)")
 
     def project_exists(self):
         return self.graph is not None
 
-    # TODO Fix this
     def get_network_json(self):
         """Parse the network into the standard JSON structure for most graphs libraries."""
         graph_data = nx.node_link_data(self.graph)
-
-        for k, node in graph_data.get('nodes'):
-            node['name'] = (self.graph.nodes[node.get('id')].get('id'))  # Add id to node data as 'name'
-
         return graph_data
 
     def neo4j_to_network(self, records):
@@ -37,10 +32,10 @@ class Network:
 
     def __add_node(self, node):
         node_id = node.id
-        node_type = list(node.labels)
+        node_type = list(node.labels)[0]
         # TODO Add Artifact & Attribute
         if node_type == "Project":
-            self.graph.add_node(node_id, id=node["id"], type=node_type)
+            self.graph.add_node(node_id, id=node["id"], name=node["id"], type=node_type)
         elif node_type == "Package" or node_type == "ClassOrInterface" or node_type == "Method":
             self.graph.add_node(node_id, id=node["id"], name=node["name"], type=node_type)
 
