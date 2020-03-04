@@ -1,11 +1,9 @@
 import networkx as nx
 import graph_db
-import os
 
 
 class Network:
     def __init__(self):
-        self.debug = os.getenv("DEBUG")
         self.graph = nx.DiGraph()
         self.db = graph_db.GraphDb()
         self.db_driver = self.db.get_driver()

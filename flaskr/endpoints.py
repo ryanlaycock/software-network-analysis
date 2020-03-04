@@ -1,5 +1,5 @@
 import project_network
-import json
+from flask import jsonify
 
 
 def get_project(owner, repo, requested_projects, db):
@@ -16,8 +16,8 @@ def get_project(owner, repo, requested_projects, db):
         if network.project_exists():
             formatted_network = network.get_network_json()
             requested_projects[project_name] = formatted_network
-            return json.dumps(formatted_network)
+            return jsonify(formatted_network)
         else:
-            return json.dumps("Project not available."), 404
+            return jsonify({"Error": "Project not available."}), 404
     else:
-        return json.dumps(found_network)
+        return jsonify(found_network)

@@ -11,11 +11,11 @@ class ProjectNetwork(network.Network):
         self.neo4j_to_network(records)
 
     def __fetch_data(self, project_name):
+        print("Fetching data for", project_name)
         query = ("MATCH p = (parent:Project{id:$projectName})"
                  "-[ra:Contains]->(child:Package)"
                  "-[rb:Contains]->(class:ClassOrInterface)"
                  "-[rc:Contains]->(method:Method) " + self.query_end)
         with self.db_driver.session() as session:
             result = session.run(query, parameters={"projectName": project_name})
-
             return result.records()

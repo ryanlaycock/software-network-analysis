@@ -1,16 +1,18 @@
 from flask import Flask
+from flask_cors import CORS
 import graph_db
 import endpoints
 
 
 def create_app(test_config=None):
     """Flask URL -> endpoints"""
-    app = Flask(__name__, instance_relative_config=True)
+    app = Flask(__name__)
+    CORS(app)
     db = graph_db.GraphDb()
     requested_projects = {}
 
     # Routes
-    @app.route('/owners/<owner>/repo/<repo>/')
+    @app.route('/owners/<owner>/repos/<repo>')
     def get_project(owner, repo):
         return endpoints.get_project(owner, repo, requested_projects, db)
 
