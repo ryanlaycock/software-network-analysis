@@ -13,6 +13,32 @@ class Network:
                           "WITH DISTINCT r2 "
                           "RETURN startNode(r2), type(r2), endNode(r2)")
 
+    def get_stats(self):
+        num_of_nodes = self.graph.number_of_nodes()
+        num_of_edges = self.graph.number_of_edges()
+        num_of_node_types = self.__get_node_count_of_types()
+        num_of_edge_types = self.__get_edge_count_of_types()
+        return {
+            'num_of_nodes': num_of_nodes,
+            'num_of_edges': num_of_edges,
+            'num_of_node_types': num_of_node_types,
+            'num_of_edge_types': num_of_edge_types
+        }
+
+    def __get_node_count_of_types(self):
+        count = {"Project": 0, "Package": 0, "Method": 0, "ClassOrInterface": 0}
+        nodes = nx.get_node_attributes(self.graph, 'type')
+        for node_id, node_type in nodes.items():
+            count[node_type] += 1
+        return count
+
+    def __get_edge_count_of_types(self):
+        count = {"Contains": 0, "Calls": 0, "Depends": 0, "ExtendedBy": 0, "OverriddenOrOverloadedBy": 0}
+        edges = nx.get_edge_attributes(self.graph, 'type')
+        for edge_id, edge_type in edges.items():
+            count[edge_type] += 1
+        return count
+
     def project_exists(self):
         return self.graph is not None
 

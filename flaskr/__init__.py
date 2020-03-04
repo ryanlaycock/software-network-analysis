@@ -12,9 +12,13 @@ def create_app(test_config=None):
     requested_projects = {}
 
     # Routes
-    @app.route('/owners/<owner>/repos/<repo>')
+    @app.route('/owners/<string:owner>/repos/<string:repo>')
     def get_project(owner, repo):
-        return endpoints.get_project(owner, repo, requested_projects, db)
+        return endpoints.get_project_json(owner, repo, requested_projects)
+
+    @app.route('/owners/<string:owner>/repos/<string:repo>/stats')
+    def get_project_stats(owner, repo):
+        return endpoints.get_project_stats(owner, repo, requested_projects)
 
     return app
 
