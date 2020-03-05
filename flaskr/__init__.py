@@ -20,6 +20,10 @@ def create_app(test_config=None):
     def get_project_stats(owner, repo):
         return endpoints.get_project_stats(owner, repo, requested_projects)
 
+    @app.route('/owners/<string:owner>/repos/<string:repo>/scc')
+    def get_project_scc(owner, repo):
+        return endpoints.get_project_scc(owner, repo, requested_projects)
+
     return app
 
 

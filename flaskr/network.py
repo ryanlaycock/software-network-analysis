@@ -25,6 +25,13 @@ class Network:
             'num_of_edge_types': num_of_edge_types
         }
 
+    def get_scc(self):
+        scc = []
+        for c in sorted(nx.strongly_connected_components(self.graph), key=len, reverse=True):
+            if len(c) > 1:
+                scc.append(nx.node_link_data(self.graph.subgraph(c).copy()))
+        return scc
+
     def __get_node_count_of_types(self):
         count = {"Project": 0, "Package": 0, "Method": 0, "ClassOrInterface": 0}
         nodes = nx.get_node_attributes(self.graph, 'type')

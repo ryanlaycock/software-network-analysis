@@ -8,8 +8,7 @@ def get_project_json(owner, repo, requested_projects):
     If found, the data is built into a networkx network and the json is returned to the client
     TODO: If not found
     """
-    project_name = owner + "/" + repo
-    project = get_project(project_name, requested_projects)
+    project = get_project(owner, repo, requested_projects)
     if project is None:
         return jsonify({"Error": "Project not available."}), 404
     json = project.get_network_json()
@@ -17,15 +16,21 @@ def get_project_json(owner, repo, requested_projects):
 
 
 def get_project_stats(owner, repo, requested_projects):
-    project_name = owner + "/" + repo
-    project = get_project(project_name, requested_projects)
+    project = get_project(owner, repo, requested_projects)
     if project is None:
         return jsonify({"Error": "Project not available."}), 404
     stats = project.get_stats()
     return jsonify(stats)
 
 
-def get_project(project_name, requested_projects):
+def get_project_scc(owner, repo, requested_projects):
+    project = get_project(owner, repo, requested_projects)
+    scc = project.get_scc()
+    return jsonify(scc)
+
+
+def get_project(owner, repo, requested_projects):
+    project_name = owner + "/" + repo
     if requested_projects.get(project_name, None) is None:
         project = project_network.ProjectNetwork(project_name)
         if not project.project_exists():
