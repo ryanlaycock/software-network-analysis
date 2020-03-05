@@ -32,6 +32,30 @@ class Network:
                 scc.append(nx.node_link_data(self.graph.subgraph(c).copy()))
         return scc
 
+    def get_degree(self, limit, graphs):
+        nodes = nx.degree_centrality(self.graph)
+        sorted_nodes = sorted(((value, key) for (key, value) in nodes.items()), reverse=True)
+        if not limit == 0:
+            sorted_nodes = sorted_nodes[:limit]
+        format_nodes = []
+        for node in sorted_nodes:
+            sub = nx.ego_graph(self.graph, node[1], undirected=True)
+            if graphs:
+                format_nodes.append({
+                    'id': node[1],
+                    'degree': node[0],
+                    'node': self.graph.nodes[node[1]],
+                    'subgraph': nx.node_link_data(sub)
+                })
+            else:
+                format_nodes.append({
+                    'id': node[1],
+                    'degree': node[0],
+                    'node': self.graph.nodes[node[1]],
+                })
+
+        return format_nodes
+
     def __get_node_count_of_types(self):
         count = {"Project": 0, "Package": 0, "Method": 0, "ClassOrInterface": 0}
         nodes = nx.get_node_attributes(self.graph, 'type')

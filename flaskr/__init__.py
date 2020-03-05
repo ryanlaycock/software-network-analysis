@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 import graph_db
 import endpoints
@@ -8,7 +8,6 @@ def create_app(test_config=None):
     """Flask URL -> endpoints"""
     app = Flask(__name__)
     CORS(app)
-    db = graph_db.GraphDb()
     requested_projects = {}
 
     # Routes
@@ -23,6 +22,12 @@ def create_app(test_config=None):
     @app.route('/owners/<string:owner>/repos/<string:repo>/scc')
     def get_project_scc(owner, repo):
         return endpoints.get_project_scc(owner, repo, requested_projects)
+
+    @app.route('/owners/<string:owner>/repos/<string:repo>/degree')
+    def get_project_degree(owner, repo):
+        limit = int(request.args.get('limit', default=0))
+        graphs = bool(request.args.get('graphs', default=False))
+        return endpoints.get_project_degree(owner, repo, limit, graphs, requested_projects)
 
     return app
 

@@ -29,6 +29,12 @@ def get_project_scc(owner, repo, requested_projects):
     return jsonify(scc)
 
 
+def get_project_degree(owner, repo, limit, graphs, requested_projects):
+    project = get_project(owner, repo, requested_projects)
+    degree = project.get_degree(limit, graphs)
+    return jsonify(degree)
+
+
 def get_project(owner, repo, requested_projects):
     project_name = owner + "/" + repo
     if requested_projects.get(project_name, None) is None:
