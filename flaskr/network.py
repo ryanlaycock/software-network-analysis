@@ -25,6 +25,22 @@ class Network:
             'num_of_edge_types': num_of_edge_types
         }
 
+    def get_internal_metrics(self):
+        metrics = []
+        nodes = self.graph.nodes(data=True)
+        for node in nodes:
+            if node[1]['type'] == "Project":
+                continue
+            metrics.append({
+                "internalId": node[0],
+                "id": node[1]['id'],
+                "type": node[1]['type'],
+                "name": node[1]['name'],
+                "fanOut": self.graph.out_degree(node[0]),
+                "fanIn": self.graph.in_degree(node[0]),
+            })
+        return metrics
+
     def get_scc(self):
         scc = []
         for c in sorted(nx.strongly_connected_components(self.graph), key=len, reverse=True):
@@ -76,6 +92,12 @@ class Network:
     def get_network_json(self):
         """Parse the network into the standard JSON structure for most graphs libraries."""
         graph_data = nx.node_link_data(self.graph)
+        return graph_data
+
+    def get_component_network_json(self, component):
+        """Parse the network into the standard JSON structure for most graphs libraries."""
+        sub = nx.ego_graph(self.graph, int(component), undirected=True)
+        graph_data = nx.node_link_data(sub)
         return graph_data
 
     def neo4j_to_network(self, records):

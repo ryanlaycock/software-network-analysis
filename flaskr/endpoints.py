@@ -15,6 +15,22 @@ def get_project_json(owner, repo, requested_projects):
     return jsonify(json)
 
 
+def get_project_component_graph_json(owner, repo, component, requested_projects):
+    project = get_project(owner, repo, requested_projects)
+    if project is None:
+        return jsonify({"Error": "Project not available."}), 404
+    json = project.get_component_network_json(component)
+    return jsonify(json)
+
+
+def get_project_internal_metrics(owner, repo, requested_projects):
+    project = get_project(owner, repo, requested_projects)
+    if project is None:
+        return jsonify({"Error": "Project not available."}), 404
+    metrics = project.get_internal_metrics()
+    return jsonify(metrics)
+
+
 def get_project_stats(owner, repo, requested_projects):
     project = get_project(owner, repo, requested_projects)
     if project is None:

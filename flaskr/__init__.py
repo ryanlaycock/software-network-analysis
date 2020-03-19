@@ -15,6 +15,10 @@ def create_app(test_config=None):
     def get_project(owner, repo):
         return endpoints.get_project_json(owner, repo, requested_projects)
 
+    @app.route('/owners/<string:owner>/repos/<string:repo>/component/<string:component>/graph')
+    def get_project_component_graph(owner, repo, component):
+        return endpoints.get_project_component_graph_json(owner, repo, component, requested_projects)
+
     @app.route('/owners/<string:owner>/repos/<string:repo>/stats')
     def get_project_stats(owner, repo):
         return endpoints.get_project_stats(owner, repo, requested_projects)
@@ -22,6 +26,10 @@ def create_app(test_config=None):
     @app.route('/owners/<string:owner>/repos/<string:repo>/scc')
     def get_project_scc(owner, repo):
         return endpoints.get_project_scc(owner, repo, requested_projects)
+
+    @app.route('/owners/<string:owner>/repos/<string:repo>/internal/metrics')
+    def get_project_internal_metrics(owner, repo):
+        return endpoints.get_project_internal_metrics(owner, repo, requested_projects)
 
     @app.route('/owners/<string:owner>/repos/<string:repo>/degree')
     def get_project_degree(owner, repo):
