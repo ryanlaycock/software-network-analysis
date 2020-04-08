@@ -1,0 +1,157 @@
+openapi: "3.0.0"
+info:
+  version: 0.0.1
+  title: Software Network Analysis
+  description:
+  license:
+paths:
+  /projects/owners/{owner}/repos/{repo}/metrics:
+    get:
+      description: Returns the metrics for the project
+      responses:
+        '200':
+          description: Returns all the metrics for the project
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Component'
+        '202':
+          description: The project metrics are being analysed, returns status of analysis
+          content:
+            applicaton/json:
+              schema:
+                type: string
+        '404':
+          description: The project does not exist in the system
+  /projects/owners/{owner}/repos/{repo}/graphs/internal:
+    get:
+      description: Returns the network graph for the project's internal components, in node-link format
+      responses:
+        '200':
+          description: Returns the graph for the project's internal components
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Graph'
+        '202':
+          description: The project graph is being parsed, returns status of parsing
+          content:
+            applicaton/json:
+              schema:
+                type: string
+        '404':
+          description: The project does not exist in the system
+  /projects/owners/{owner}/repos/{repo}/graphs/dependencies:
+    get:
+      description: Returns the network graph for the project's internal dependencies, in node-link format
+      responses:
+        '200':
+          description: Returns the graph for the project's dependencies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Graph'
+        '202':
+          description: The project graph is being parsed, returns status of parsing
+          content:
+            applicaton/json:
+              schema:
+                type: string
+        '404':
+          description: The project does not exist in the system
+  /projects/owners/{owner}/repos/{repo}/component/{id}/metrics:
+    get:
+      description: Returns the metrics for the given component
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Component'
+        '202':
+          description: The project metrics are being analysed, returns status of analysis
+          content:
+            applicaton/json:
+              schema:
+                type: string
+        '404':
+          description: The component does not exist in the system
+  /projects/owners/{owner}/repos/{repo}/component/{id}/graphs:
+    get:
+      description: Returns the network graphs component, in node-link format
+      responses:
+        '200':
+          description: Returns the graphs for the component
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Graph'
+        '202':
+          description: The component graph is being parsed, returns status of parsing
+          content:
+            applicaton/json:
+              schema:
+                type: string
+        '404':
+          description: The component does not exist in the system
+components:
+  schemas:
+    Component:
+      type: object
+      required:
+        - type
+        - name
+        - id
+        - internalId
+      properties:
+        internalId:
+          type: string
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        metrics:
+          type: '#/components/schemas/Metrics'
+    Metrics:
+      type: object
+      properties:
+        networkComplexity:
+          type: integer
+        totalNetworkComplexity:
+          type: integer
+        projectComplexity:
+          type: integer
+        totalProjectComplexity:
+          type: integer
+        packageComplexity:
+          type: integer
+        classComplexity:
+          type: integer
+        procedureComplexity:
+          type: integer
+        codeChurn:
+          type: integer
+        totalCodeChurn:
+          type: integer
+        pageRank:
+          type: integer
+        inDegree:
+          type: integer
+        outDegree:
+          type: integer
+        numUnconWeakComp:
+          type: integer
+        modularity:
+          type: integer
+
+

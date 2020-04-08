@@ -1,5 +1,6 @@
 import networkx as nx
 import graph_db
+from networkx.algorithms.community import greedy_modularity_communities, quality
 
 
 class Network:
@@ -24,22 +25,6 @@ class Network:
             'num_of_node_types': num_of_node_types,
             'num_of_edge_types': num_of_edge_types
         }
-
-    def get_internal_metrics(self):
-        metrics = []
-        nodes = self.graph.nodes(data=True)
-        for node in nodes:
-            if node[1]['type'] == "Project":
-                continue
-            metrics.append({
-                "internalId": node[0],
-                "id": node[1]['id'],
-                "type": node[1]['type'],
-                "name": node[1]['name'],
-                "fanOut": self.graph.out_degree(node[0]),
-                "fanIn": self.graph.in_degree(node[0]),
-            })
-        return metrics
 
     def get_scc(self):
         scc = []
@@ -72,22 +57,51 @@ class Network:
 
         return format_nodes
 
+    def procedure_complexity(self, fan_in, fan_out):
+        return (fan_in * fan_out) ** 2
+
+    def modularity(self, graph):
+        communities = greedy_modularity_communities(nx.Graph(graph))
+        modularity = quality.modularity(graph, communities)
+
+        return modularity
+
+    def n_weak_comp(self, node, reversed_graph):
+        sub = nx.ego_graph(reversed_graph, node, radius=1, center=False)  # Get the in ego network
+        unconnected = 0
+        connected = 0
+        for c in sorted(nx.weakly_connected_components(sub), key=len, reverse=True):
+            if len(c) == 1:
+                unconnected += 1
+            else:
+                connected += 1
+        return {"connected": connected, "unconnected": unconnected}
+
     def __get_node_count_of_types(self):
-        count = {"Project": 0, "Package": 0, "Method": 0, "ClassOrInterface": 0}
+        count = {}
         nodes = nx.get_node_attributes(self.graph, 'type')
         for node_id, node_type in nodes.items():
-            count[node_type] += 1
+            if node_type not in count.keys():
+                count[node_type] = 1
+            else:
+                count[node_type] += 1
         return count
 
     def __get_edge_count_of_types(self):
-        count = {"Contains": 0, "Calls": 0, "Depends": 0, "ExtendedBy": 0, "OverriddenOrOverloadedBy": 0}
+        count = {}
         edges = nx.get_edge_attributes(self.graph, 'type')
         for edge_id, edge_type in edges.items():
-            count[edge_type] += 1
+            if edge_type not in count.keys():
+                count[edge_type] = 1
+            else:
+                count[edge_type] += 1
         return count
 
     def project_exists(self):
         return self.graph is not None
+
+    def is_empty(self):
+        return nx.is_empty(self.graph)
 
     def get_network_json(self):
         """Parse the network into the standard JSON structure for most graphs libraries."""
@@ -110,11 +124,24 @@ class Network:
     def __add_node(self, node):
         node_id = node.id
         node_type = list(node.labels)[0]
-        # TODO Add Artifact & Attribute
-        if node_type == "Project":
+        if node_type == "Project" or node_type == "Artifact":
             self.graph.add_node(node_id, id=node["id"], name=node["id"], type=node_type)
-        elif node_type == "Package" or node_type == "ClassOrInterface" or node_type == "Method":
+        elif node_type == "Attribute":
+            return  # Don't care about attributes
+        else:
             self.graph.add_node(node_id, id=node["id"], name=node["name"], type=node_type)
 
     def __add_edge(self, source_node, relation_type, target_node):
         self.graph.add_edge(source_node.id, target_node.id, type=relation_type)
+
+    def add_metrics_to_nodes(self, node_metrics):
+        with self.db_driver.session() as session:
+            for node_id, metric in node_metrics.items():
+                print("Adding metrics to node id:", node_id)
+                session.write_transaction(self.__metrics_to_node_tx, node_id, metric)
+
+    def __metrics_to_node_tx(self, tx, node_id, metrics):
+        properties = ",".join('{0}:{1}'.format(key, val) for key, val in metrics.items())
+        transaction = ("MATCH (n) WHERE id(n)=" + str(node_id) +
+                       " SET n += {" + properties + "}")
+        return tx.run(transaction)
