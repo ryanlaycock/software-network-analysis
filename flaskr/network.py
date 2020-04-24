@@ -26,36 +26,23 @@ class Network:
             'num_of_edge_types': num_of_edge_types
         }
 
-    def get_scc(self):
-        scc = []
-        for c in sorted(nx.strongly_connected_components(self.graph), key=len, reverse=True):
-            if len(c) > 1:
-                scc.append(nx.node_link_data(self.graph.subgraph(c).copy()))
-        return scc
+    def get_project_node(self):
+        for node in self.graph.nodes(data=True):
+            if node[1]['type'] == "Project":
+                project_node = node
+                return project_node
+        print("Project node not found")
+        return
 
-    def get_degree(self, limit, graphs):
-        nodes = nx.degree_centrality(self.graph)
-        sorted_nodes = sorted(((value, key) for (key, value) in nodes.items()), reverse=True)
-        if not limit == 0:
-            sorted_nodes = sorted_nodes[:limit]
-        format_nodes = []
-        for node in sorted_nodes:
-            sub = nx.ego_graph(self.graph, node[1], undirected=True)
-            if graphs:
-                format_nodes.append({
-                    'id': node[1],
-                    'degree': node[0],
-                    'node': self.graph.nodes[node[1]],
-                    'subgraph': nx.node_link_data(sub)
-                })
-            else:
-                format_nodes.append({
-                    'id': node[1],
-                    'degree': node[0],
-                    'node': self.graph.nodes[node[1]],
-                })
-
-        return format_nodes
+    def get_network_comp(self, node, reversed_graph):
+        degree_out = self.graph.out_degree(node)
+        n_weak_comp = self.n_weak_comp(node, reversed_graph)
+        n_uncon_weak_comp = n_weak_comp["unconnected"]
+        modularity = round(self.modularity(nx.ego_graph(self.graph, node, undirected=True)), 8)
+        if modularity == 0:
+            modularity = 0.1
+        network_comp = round((degree_out + 2 * n_uncon_weak_comp) / modularity, 8)
+        return network_comp
 
     def procedure_complexity(self, fan_in, fan_out):
         return (fan_in * fan_out) ** 2
@@ -124,8 +111,10 @@ class Network:
     def __add_node(self, node):
         node_id = node.id
         node_type = list(node.labels)[0]
-        if node_type == "Project" or node_type == "Artifact":
+        if node_type == "Project":
             self.graph.add_node(node_id, id=node["id"], name=node["id"], type=node_type)
+        elif node_type == "Artifact":
+            self.graph.add_node(node_id, id=node["id"], group=node["group"], artifact=node["artifact"], type=node_type)
         elif node_type == "Attribute":
             return  # Don't care about attributes
         else:
@@ -135,10 +124,11 @@ class Network:
         self.graph.add_edge(source_node.id, target_node.id, type=relation_type)
 
     def add_metrics_to_nodes(self, node_metrics):
-        with self.db_driver.session() as session:
-            for node_id, metric in node_metrics.items():
-                print("Adding metrics to node id:", node_id)
-                session.write_transaction(self.__metrics_to_node_tx, node_id, metric)
+        return
+        # with self.db_driver.session() as session:
+        #     for node_id, metric in node_metrics.items():
+        #         print("Adding metrics to node id:", node_id)
+        #         session.write_transaction(self.__metrics_to_node_tx, node_id, metric)
 
     def __metrics_to_node_tx(self, tx, node_id, metrics):
         properties = ",".join('{0}:{1}'.format(key, val) for key, val in metrics.items())

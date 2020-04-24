@@ -1,77 +1,62 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
-import graph_db
-import endpoints
-import project_network
-import dependency_network
 import main
+from os import getenv
+import requests
+import time
 
 
 def create_app(test_config=None):
     """Flask URL -> endpoints"""
     app = Flask(__name__)
     CORS(app)
-    requested_projects = {}
-    requested_deps = {}
 
     # Routes
-    @app.route('/projects/<string:owner>/<string:repo>/metrics', methods=['GET'])
-    def get_project_metrics(owner, repo):
+    @app.route('/projects/<string:owner>/<string:repo>/valid', methods=['GET'])
+    def is_valid(owner, repo):
+        pom_search_service_addr = getenv("POM_SEARCH_SERVICE_ADDR")
         project_name = owner + "/" + repo
+        validate_repo = requests.get(pom_search_service_addr + '/api/v1/project/' + project_name + '/validate')
+        if validate_repo.status_code == 404 and validate_repo.json()['state'] == 'invalid-repo':
+            return jsonify({"valid": "false"}), 404
+        if validate_repo.status_code == 500:
+            return 500
+        return jsonify({"valid": "true"}), 200
 
-        status = main.get_parsing_status(project_name)
+    @app.route('/projects/<string:owner>/<string:repo>', methods=['GET'])
+    def get_project(owner, repo):
+        project_name = owner + "/" + repo
+        project = main.get_project_from_neo4j(project_name)
+        if not project:
+            # Project not parsed and in Neo4j
+            return jsonify({"state": "not_parsed"}), 404
+        else:
+            return jsonify(project), 200
+
+    @app.route('/analyse', methods=['POST'])
+    def get_project_metrics():
+        owner = request.json['owner']
+        repo = request.json['repo']
+        project_name = owner + "/" + repo
+        print("Analyse request for:", project_name)
+        if project_name is None:
+            print("Project name not set.")
+            return jsonify({"error": "an error occurred"}), 500
+        status = ""
+        last_status = ""
+        while status != "error" and status != "ast_parsed":
+            status = main.get_parsing_status(project_name)
+            if status != last_status:
+                main.post_status_update(project_name, status, "")
+            last_status = status
+            time.sleep(5)
         if status == "error":
             return jsonify({"error": "an error occurred attempting to parse this project"}), 500
-        if status == "invalid_repo":
-            return jsonify({"error": "invalid project"}), 404
         if status == "ast_parsed":
+            main.post_status_update(project_name, "in_progress", "Fetching project data.")
             project = main.get_project_internal(project_name)
-            deps = main.get_project_dependencies(project_name)
-            result = main.compute_metrics(project_name, project, deps)
+            result = main.compute_metrics(project_name, project)
             return jsonify(result), 200
-        return jsonify({"status": status}), 202
-
-    def get_project(owner, repo):
-        return endpoints.get_project_json(owner, repo, requested_projects)
-
-    @app.route('/owners/<string:owner>/repos/<string:repo>/component/<string:component>/graph')
-    def get_project_component_graph(owner, repo, component):
-        return endpoints.get_project_component_graph_json(owner, repo, component, requested_projects)
-
-    @app.route('/owners/<string:owner>/repos/<string:repo>/stats')
-    def get_project_stats(owner, repo):
-        return endpoints.get_project_stats(owner, repo, requested_projects)
-
-    @app.route('/owners/<string:owner>/repos/<string:repo>/scc')
-    def get_project_scc(owner, repo):
-        return endpoints.get_project_scc(owner, repo, requested_projects)
-
-    @app.route('/owners/<string:owner>/repos/<string:repo>/internal/metrics')
-    def get_project_internal_metrics(owner, repo):
-        return endpoints.get_project_internal_metrics(owner, repo, requested_projects)
-
-    @app.route('/owners/<string:owner>/repos/<string:repo>/degree')
-    def get_project_degree(owner, repo):
-        limit = int(request.args.get('limit', default=0))
-        graphs = bool(request.args.get('graphs', default=False))
-        return endpoints.get_project_degree(owner, repo, limit, graphs, requested_projects)
-
-    # Deps endpoints
-    @app.route('/owners/<string:owner>/repos/<string:repo>/deps')
-    def get_project_deps(owner, repo):
-        # return ""
-        return endpoints.get_project_deps_json(owner, repo, requested_deps)
-
-    @app.route('/owners/<string:owner>/repos/<string:repo>/deps/stats')
-    def get_project_deps_stats(owner, repo):
-        # return ""
-        return endpoints.get_project_deps_stats(owner, repo, requested_deps)
-
-    @app.route('/owners/<string:owner>/repos/<string:repo>/deps/metrics')
-    def get_project_deps_metrics(owner, repo):
-        # return ""
-        return endpoints.get_project_deps_metrics(owner, repo, requested_deps)
 
     return app
 

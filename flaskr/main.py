@@ -1,5 +1,4 @@
 import project_network
-import dependency_network
 from os import getenv
 import requests
 import time
@@ -12,11 +11,20 @@ def get_project_internal(project_name):
     return project
 
 
-def get_project_dependencies(project_name):
-    project = dependency_network.DependencyNetwork(project_name)
-    if not project.project_exists():
-        return None
-    return project
+def get_project_from_neo4j(project_name):
+    # TODO Lookup in Neo4j if project fully analysed
+    # and return the project
+    return False
+
+
+def post_status_update(project_name, status, msg):
+    GATEWAY_URL = getenv("GATEWAY_ADDR")
+    print("New status:", status)
+    requests.post(GATEWAY_URL + "/projects/" + project_name + "/status", json={
+        "status": status,
+        "project_name": project_name,
+        "msg": msg,
+    })
 
 
 def get_parsing_status(project_name):
@@ -54,26 +62,51 @@ def get_parsing_status(project_name):
             return "ast_parsed"
         elif ast_state_req.status_code == 200 and ast_state_req.json() == {"state": "queued", "status": "ok"}:
             return "ast_parsing_queued"
+        elif ast_state_req.status_code == 200 and ast_state_req.json() == {"state": "failed", "status": "ok"}:
+            return "error"
         else:
             return ast_state_req.json()
     else:
         return "dependents_parsing_in_progress"
 
 
-def compute_metrics(project_name, project, deps):
-    metrics = project.compute_metrics(project_name)
+def compute_metrics(project_name, project):
+    project_node = project.get_project_node()
+    internal_metrics = project.compute_metrics(project_name, project_node)
     nodes = {}
-    for node in project.graph.nodes(data=True):
-        node_obj = {
-            "internalId": node[0],
-            "id": node[1]['id'],
-            "type": node[1]['type'],
-            "name": node[1]['name'],
-            "metrics": metrics[node[0]]
-        }
-        if not node[1]["type"] in nodes.keys():
-            nodes[node[1]["type"]] = []
-        nodes[node[1]["type"]].append(node_obj)
+
+    for component_id in internal_metrics:
+        node = project.graph.nodes(data=True)[component_id]
+        if node["type"] == "Project":
+            nodes["Project"] = {
+                "internal_id": component_id,
+                "id": node['id'],
+                "type": node['type'],
+                "code_churn": internal_metrics[component_id]['code_churn'],
+                "network_comp": internal_metrics[component_id]['network_comp'],
+                # "metrics": internal_metrics[component_id]
+            }
+        else:
+            if node["type"] == "Method":
+                node_obj = {
+                    "internal_id": component_id,
+                    "id": node['id'],
+                    "type": node['type'],
+                    "name": node['name'],
+                    "network_comp": internal_metrics[component_id]['network_comp'],
+                    "procedure_comp": internal_metrics[component_id]['procedure_comp']
+                }
+            else:
+                node_obj = {
+                    "internal_id": component_id,
+                    "id": node['id'],
+                    "type": node['type'],
+                    "name": node['name'],
+                    "network_comp": internal_metrics[component_id]['network_comp'],
+                }
+            if node["type"] not in nodes.keys():
+                nodes[node["type"]] = []
+            nodes[node["type"]].append(node_obj)
     return nodes
 
 
@@ -81,6 +114,7 @@ def compute_avg_code_change(project_name):
     print("Requesting github code_frequency")
     req = requests.get("https://api.github.com/repos/" + project_name + "/stats/code_frequency",
                        params={"headers": {"accept": "application/vnd.github.v3+json"}})
+    # TODO add api key
     if req.status_code == 200:
         total = 0
         weeks = req.json()
@@ -93,23 +127,6 @@ def compute_avg_code_change(project_name):
     elif req.status_code == 202:  # GitHub processing data
         time.sleep(5)
         return compute_avg_code_change(project_name)
-    else:
-        print("An error occurred", req.json())
-        return 0
-
-
-def compute_avg_commit_count(project_name):
-    print("Requesting github commit count")
-    req = requests.get("https://api.github.com/repos/" + project_name + "/stats/participation",
-                       params={"headers": {"accept": "application/vnd.github.v3+json"}})
-    if req.status_code == 200:
-        commits_per_week = req.json()["all"]
-        total = sum(commits_per_week)
-        avg = total / len(commits_per_week)
-        return avg
-    elif req.status_code == 202:  # GitHub processing data
-        time.sleep(5)
-        return compute_avg_commit_count(project_name)
     else:
         print("An error occurred", req.json())
         return 0
