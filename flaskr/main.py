@@ -78,6 +78,23 @@ def compute_metrics(project_name, project):
     for component_id in internal_metrics:
         node = project.graph.nodes(data=True)[component_id]
         if node["type"] == "Project":
+            if internal_metrics[component_id]['network_comp'] <= 10000:
+                network_comp_msg = "This value indicates the project has a relatively low complexity."
+            elif 10000 < internal_metrics[component_id]['network_comp'] <= 70000:
+                network_comp_msg = "This value indicates the project has a moderately high complexity."
+            else:
+                network_comp_msg = "This value indicates the project has a moderately high complexity."
+
+            if internal_metrics[component_id]['code_churn'] <= 100:
+                code_churn_msg = "This value indicates the code is infrequently updated, reducing the need for " \
+                                   "consistent updates however indicating a risk of outdated and insecure code."
+            elif 100 < internal_metrics[component_id]['code_churn'] <= 500:
+                code_churn_msg = "This value indicates the code is fairly regularly updated, therefore requiring " \
+                                   "dependents to update relatively frequently."
+            else:
+                code_churn_msg = "This value indicates the project updates frequently, and therefore dependents must " \
+                                   "also update frequently to remain in sync."
+
             nodes["Project"] = {
                 "internal_id": component_id,
                 "id": node['id'],
@@ -85,7 +102,8 @@ def compute_metrics(project_name, project):
                 "code_churn": internal_metrics[component_id]['code_churn'],
                 "network_comp": internal_metrics[component_id]['network_comp'],
                 "procedure_comp": internal_metrics[component_id]['procedure_comp'],
-                # "metrics": internal_metrics[component_id]
+                "code_churn_msg": code_churn_msg,
+                "network_comp_msg": network_comp_msg,
             }
         else:
             if node["type"] == "Method":
