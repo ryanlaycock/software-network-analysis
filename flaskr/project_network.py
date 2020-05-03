@@ -29,9 +29,9 @@ class ProjectNetwork(network.Network):
         total = nx.number_of_nodes(self.graph)
         reversed_graph = self.graph.reverse()  # For nWeakComp
         project_network_comp = 0
+        project_procedure_comp = 0
         progress = 0
         for project_child_node in project_child_nodes:  # For each package
-            progress += 1
             package_network_comp = 0
             if self.graph.nodes[project_child_node]["type"] != "Package":
                 continue
@@ -50,7 +50,6 @@ class ProjectNetwork(network.Network):
                 class_network_comp = 0
                 class_child_nodes = nx.ego_graph(self.graph, package_child_node)
                 for class_child_node in class_child_nodes:  # For each method
-                    progress += 1
                     if self.graph.nodes[class_child_node]["type"] == "Method":
                         progress += 1
                         node_metrics[class_child_node] = {}
@@ -59,6 +58,7 @@ class ProjectNetwork(network.Network):
                                                                    self.graph.out_degree(class_child_node))
                         node_metrics[class_child_node]["network_comp"] = method_network_comp
                         node_metrics[class_child_node]["procedure_comp"] = procedure_comp
+                        project_procedure_comp += procedure_comp
                         class_network_comp += method_network_comp
                 node_metrics[package_child_node] = {}
                 node_metrics[package_child_node]["network_comp"] = class_network_comp
@@ -71,6 +71,7 @@ class ProjectNetwork(network.Network):
         node_metrics[project_node[0]] = {}
         node_metrics[project_node[0]]["code_churn"] = round(main.compute_avg_code_change(project_name), 8)
         node_metrics[project_node[0]]["network_comp"] = project_network_comp
+        node_metrics[project_node[0]]["procedure_comp"] = project_procedure_comp
 
         main.post_status_update(project_name, "in_progress", "Project analysed, saving for next time.")
         self.add_metrics_to_nodes(node_metrics)

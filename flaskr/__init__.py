@@ -47,7 +47,7 @@ def create_app(test_config=None):
         while status != "error" and status != "ast_parsed":
             status = main.get_parsing_status(project_name)
             if status != last_status:
-                main.post_status_update(project_name, status, "")
+                main.post_status_update(project_name, status, "Processing project.")
             last_status = status
             time.sleep(5)
         if status == "error":

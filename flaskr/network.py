@@ -38,10 +38,8 @@ class Network:
         degree_out = self.graph.out_degree(node)
         n_weak_comp = self.n_weak_comp(node, reversed_graph)
         n_uncon_weak_comp = n_weak_comp["unconnected"]
-        modularity = round(self.modularity(nx.ego_graph(self.graph, node, undirected=True)), 8)
-        if modularity == 0:
-            modularity = 0.1
-        network_comp = round((degree_out + 2 * n_uncon_weak_comp) / modularity, 8)
+        modularity = self.modularity(nx.ego_graph(self.graph, node, undirected=True))
+        network_comp = round((degree_out + n_uncon_weak_comp) / modularity, 8)
         return network_comp
 
     def procedure_complexity(self, fan_in, fan_out):
@@ -49,8 +47,9 @@ class Network:
 
     def modularity(self, graph):
         communities = greedy_modularity_communities(nx.Graph(graph))
-        modularity = quality.modularity(graph, communities)
-
+        modularity = round(quality.modularity(graph, communities), 1)
+        if modularity < 0.1:
+            modularity = 0.1
         return modularity
 
     def n_weak_comp(self, node, reversed_graph):

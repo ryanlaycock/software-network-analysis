@@ -84,6 +84,7 @@ def compute_metrics(project_name, project):
                 "type": node['type'],
                 "code_churn": internal_metrics[component_id]['code_churn'],
                 "network_comp": internal_metrics[component_id]['network_comp'],
+                "procedure_comp": internal_metrics[component_id]['procedure_comp'],
                 # "metrics": internal_metrics[component_id]
             }
         else:
