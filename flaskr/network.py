@@ -1,5 +1,6 @@
 import networkx as nx
 import graph_db
+import functions
 from networkx.algorithms.community import greedy_modularity_communities, quality
 
 
@@ -31,7 +32,7 @@ class Network:
             if node[1]['type'] == "Project":
                 project_node = node
                 return project_node
-        print("Project node not found")
+        print(functions.log_time(), "Project node not found.")
         return
 
     def get_network_comp(self, node, reversed_graph):
@@ -121,16 +122,3 @@ class Network:
 
     def __add_edge(self, source_node, relation_type, target_node):
         self.graph.add_edge(source_node.id, target_node.id, type=relation_type)
-
-    def add_metrics_to_nodes(self, node_metrics):
-        return
-        # with self.db_driver.session() as session:
-        #     for node_id, metric in node_metrics.items():
-        #         print("Adding metrics to node id:", node_id)
-        #         session.write_transaction(self.__metrics_to_node_tx, node_id, metric)
-
-    def __metrics_to_node_tx(self, tx, node_id, metrics):
-        properties = ",".join('{0}:{1}'.format(key, val) for key, val in metrics.items())
-        transaction = ("MATCH (n) WHERE id(n)=" + str(node_id) +
-                       " SET n += {" + properties + "}")
-        return tx.run(transaction)

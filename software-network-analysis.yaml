@@ -1,38 +1,10 @@
 openapi: "3.0.0"
 info:
-  version: 0.0.1
+  version: 1.0.0
   title: Software Network Analysis
-  description:
-  license:
+  description: Microservice applying social network analysis to Java Maven projects.
+  license: MIT License
 paths:
-  /projects/owners/{owner}/repos/{repo}:
-    get:
-      description: Returns the components and metrics for the project
-      responses:
-        '200':
-          description: Returns all the metrics for the project
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Component'
-        '404':
-          description: The project has not been parsed
-  /projects/owners/{owner}/repos/{repo}/valid:
-    get:
-      description: Returns if the project is a valid GitHub Maven built Java project
-      responses:
-        '200':
-          description: Returns all the metrics for the project
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  valid: bool
-        '404':
-          description: The project has not been parsed
   /analyse:
     post:
       description: Returns the components and metrics for the project
@@ -53,54 +25,5 @@ paths:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: '#/components/schemas/Component'
         '404':
-          description: The project has not been parsed
-  /projects/owners/{owner}/repos/{repo}/graphs/internal:
-    get:
-      description: Returns the network graph for the project's internal components, in node-link format
-      responses:
-        '200':
-          description: Returns the graph for the project's internal components
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Graph'
-        '202':
-          description: The project graph is being parsed, returns status of parsing
-          content:
-            applicaton/json:
-              schema:
-                type: string
-        '404':
-          description: The project does not exist in the system
-components:
-  schemas:
-    Component:
-      type: object
-      required:
-        - type
-        - name
-        - id
-        - internal_id
-        - network_comp
-        - code_churn
-        - project_comp
-      properties:
-        internal_id:
-          type: string
-        id:
-          type: integer
-        name:
-          type: string
-        type:
-          type: string
-        network_comp:
-          type: float32
-        code_churn:
-          type: float32
-        project_comp:
-          type: float32
+          description: The project cannot be found

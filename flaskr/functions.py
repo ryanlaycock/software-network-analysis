@@ -1,7 +1,12 @@
+from datetime import datetime
 import project_network
 from os import getenv
 import requests
 import time
+
+
+def log_time():
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
 def get_project_internal(project_name):
@@ -11,15 +16,9 @@ def get_project_internal(project_name):
     return project
 
 
-def get_project_from_neo4j(project_name):
-    # TODO Lookup in Neo4j if project fully analysed
-    # and return the project
-    return False
-
-
 def post_status_update(project_name, status, msg):
     GATEWAY_URL = getenv("GATEWAY_ADDR")
-    print("New status:", status)
+    print(log_time(), "Posting new status:", status)
     requests.post(GATEWAY_URL + "/projects/" + project_name + "/status", json={
         "status": status,
         "project_name": project_name,
@@ -29,7 +28,7 @@ def post_status_update(project_name, status, msg):
 
 def get_parsing_status(project_name):
     pom_search_service_addr = getenv("POM_SEARCH_SERVICE_ADDR")
-    print("requesting deps state")
+    print(log_time(), "Requesting deps state from POM_SEARCH_SERVICE.")
     deps_state_req = requests.get(pom_search_service_addr + '/api/v1/project/' + project_name + '/dependents/state')
     if deps_state_req.status_code == 400 or (
             deps_state_req.status_code == 200 and deps_state_req.json() == {"state": None, "status": "ok"}):
@@ -41,8 +40,7 @@ def get_parsing_status(project_name):
         deps_search = requests.post(pom_search_service_addr + '/api/v1/init/dependents-search/pom',
                                     json=deps_search_obj)
         if deps_search.status_code != 200:
-            # TODO Logging here
-            print("An error occurred with submitting dependents parse job.")
+            print(log_time(), "An error occurred with submitting dependents parse job.")
             return "error"
         return "parsing_dependents"
     elif deps_state_req.status_code == 200 and deps_state_req.json() == {"state": "True", "status": "ok"}:
@@ -52,8 +50,7 @@ def get_parsing_status(project_name):
             ast_search_obj = {"github_short_url": project_name, "parsing_type": "all"}
             ast_search = requests.post(pom_search_service_addr + '/api/v1/init/ast-search/java', json=ast_search_obj)
             if ast_search.status_code != 200:
-                # TODO Logging here
-                print("An error occurred with submitting ast parse job.")
+                print(log_time(), "An error occurred with submitting ast parse job.")
                 return "error"
             return "parsing_ast"
         elif ast_state_req.status_code == 200 and ast_state_req.json() == {"state": "in-progress", "status": "ok"}:
@@ -130,7 +127,7 @@ def compute_metrics(project_name, project):
 
 
 def compute_avg_code_change(project_name):
-    print("Requesting github code_frequency")
+    print(log_time(), "Requesting github code_frequency.")
     req = requests.get("https://api.github.com/repos/" + project_name + "/stats/code_frequency",
                        params={"headers": {"accept": "application/vnd.github.v3+json"}})
     # TODO add api key
@@ -147,5 +144,5 @@ def compute_avg_code_change(project_name):
         time.sleep(5)
         return compute_avg_code_change(project_name)
     else:
-        print("An error occurred", req.json())
+        print(log_time(), "An error occurred", req.json())
         return 0

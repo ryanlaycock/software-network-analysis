@@ -11,26 +11,15 @@ CORS(app)
 
 
 # Routes
-@app.route('/projects/<string:owner>/<string:repo>', methods=['GET'])
-def get_project(owner, repo):
-    project_name = owner + "/" + repo
-    project = functions.get_project_from_neo4j(project_name)
-    if not project:
-        # Project not parsed and in Neo4j
-        return jsonify({"state": "not_parsed"}), 404
-    else:
-        return jsonify(project), 200
-
-
 @app.route('/analyse', methods=['POST'])
 def get_project_metrics():
     STANDALONE_MODE = getenv("STANDALONE_MODE")
     owner = request.json['owner']
     repo = request.json['repo']
     project_name = owner + "/" + repo
-    print("Analyse request for:", project_name)
+    print(functions.log_time(), "Analyse request for:", project_name)
     if project_name is None:
-        print("Project name not set.")
+        print(functions.log_time(), "Project name not set.")
         return jsonify({"error": "an error occurred"}), 500
     status = ""
     last_status = ""
@@ -60,5 +49,5 @@ def get_project_metrics():
 
 
 if __name__ == '__main__':
-    print("Starting software network analysis!")
+    print(functions.log_time(), "Starting software network analysis!")
     app.run(host='0.0.0.0', debug=True)
