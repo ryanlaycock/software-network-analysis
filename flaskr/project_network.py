@@ -1,6 +1,6 @@
 import network
 import networkx as nx
-import main
+import functions
 
 
 class ProjectNetwork(network.Network):
@@ -36,7 +36,7 @@ class ProjectNetwork(network.Network):
             if self.graph.nodes[project_child_node]["type"] != "Package":
                 continue
             print("Analysing metrics for package:", self.graph.nodes[project_child_node]["id"])
-            main.post_status_update(project_name, "in_progress",
+            functions.post_status_update(project_name, "in_progress",
                                     "Analysing metrics for package:" + self.graph.nodes[project_child_node]["id"]
                                     + ". Component " + str(progress) + " of " + str(total) + ".")
             package_child_nodes = nx.ego_graph(self.graph, project_child_node)
@@ -44,7 +44,7 @@ class ProjectNetwork(network.Network):
                 if self.graph.nodes[package_child_node]["type"] != "ClassOrInterface":
                     continue
                 print("Analysing metrics for class:", self.graph.nodes[package_child_node]["id"])
-                main.post_status_update(project_name, "in_progress",
+                functions.post_status_update(project_name, "in_progress",
                                         "Analysing metrics for class:" + self.graph.nodes[package_child_node]["id"]
                                         + ". Component " + str(progress) + " of " + str(total) + ".")
                 class_network_comp = 0
@@ -69,11 +69,11 @@ class ProjectNetwork(network.Network):
             project_network_comp += package_network_comp
 
         node_metrics[project_node[0]] = {}
-        node_metrics[project_node[0]]["code_churn"] = round(main.compute_avg_code_change(project_name), 8)
+        node_metrics[project_node[0]]["code_churn"] = round(functions.compute_avg_code_change(project_name), 8)
         node_metrics[project_node[0]]["network_comp"] = project_network_comp
         node_metrics[project_node[0]]["procedure_comp"] = project_procedure_comp
 
-        main.post_status_update(project_name, "in_progress", "Project analysed, saving for next time.")
+        functions.post_status_update(project_name, "in_progress", "Project analysed, saving for next time.")
         self.add_metrics_to_nodes(node_metrics)
         print("Internal metrics analysed.")
 
