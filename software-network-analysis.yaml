@@ -1,0 +1,29 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Software Network Analysis
+  description: Microservice applying social network analysis to Java Maven projects.
+  license: MIT License
+paths:
+  /analyse:
+    post:
+      description: Returns the components and metrics for the project
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                owner:
+                  type: string
+                repo:
+                  type: string
+      responses:
+        '200':
+          description: Returns all the metrics for the project
+          content:
+            application/json:
+              schema:
+                type: array
+        '404':
+          description: The project cannot be found
