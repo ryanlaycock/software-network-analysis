@@ -12,7 +12,7 @@ neo4j==1.7.6
 neobolt==1.7.16
 neotime==1.7.4
 networkx==2.4
-numpy==1.18.2
+numpy==1.22.0
 pytz==2019.3
 requests==2.23.0
 scipy==1.4.1
